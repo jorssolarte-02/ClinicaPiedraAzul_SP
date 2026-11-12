@@ -1,0 +1,3 @@
+import { Component, input } from '@angular/core';
+@Component({selector:'app-button',standalone:true,template:`<button [type]="type()" [disabled]="disabled()" class="button"><ng-content>{{label()}}</ng-content></button>`,styles:[`.button{border:0;border-radius:12px;background:#0e7790;color:white;padding:.82rem 1.2rem;font:600 .95rem system-ui;cursor:pointer;transition:transform .18s,background .18s,box-shadow .18s}.button:hover:not(:disabled){background:#095e75;transform:translateY(-1px);box-shadow:0 8px 20px #0e779033}.button:disabled{opacity:.55;cursor:not-allowed}`]})
+export class UiButtonComponent {label=input('Continuar');type=input<'button'|'submit'>('button');disabled=input(false);}

@@ -1,0 +1,3 @@
+package com.clinica.backend.controller;
+import com.clinica.backend.dto.*; import com.clinica.backend.service.ClinicService; import jakarta.validation.Valid; import java.util.*; import org.springframework.http.HttpStatus; import org.springframework.web.bind.annotation.*;
+@RestController @RequestMapping("/api/doctors") public class DoctorController{private final ClinicService clinic;public DoctorController(ClinicService c){clinic=c;}@GetMapping("/public") public List<DoctorResponse> publicList(){return clinic.doctors();}@GetMapping public List<DoctorResponse> list(){return clinic.doctors();}@PostMapping @ResponseStatus(HttpStatus.CREATED) public DoctorResponse create(@Valid @RequestBody DoctorRequest r){return clinic.createDoctor(r);}}

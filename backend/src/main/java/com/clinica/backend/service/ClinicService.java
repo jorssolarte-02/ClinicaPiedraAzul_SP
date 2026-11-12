@@ -1,0 +1,21 @@
+package com.clinica.backend.service;
+
+import com.clinica.backend.dto.*; import com.clinica.backend.entity.*; import com.clinica.backend.exception.ApiException; import com.clinica.backend.repository.*; import com.clinica.backend.security.JwtService;
+import java.util.*; import java.util.stream.*; import org.springframework.http.HttpStatus; import org.springframework.security.crypto.password.PasswordEncoder; import org.springframework.stereotype.Service; import org.springframework.transaction.annotation.Transactional;
+
+@Service
+public class ClinicService {
+ private final UserRepository users; private final DoctorRepository doctors; private final PatientRepository patients; private final AppointmentRepository appointments; private final PasswordEncoder encoder; private final JwtService jwt;
+ public ClinicService(UserRepository u,DoctorRepository d,PatientRepository p,AppointmentRepository a,PasswordEncoder e,JwtService j){users=u;doctors=d;patients=p;appointments=a;encoder=e;jwt=j;}
+ @Transactional(readOnly=true) public LoginResponse login(LoginRequest r){UserAccount u=users.findByEmailIgnoreCase(r.email()).orElseThrow(()->new ApiException(HttpStatus.UNAUTHORIZED,"Correo o contraseña incorrectos."));if(!encoder.matches(r.password(),u.getPasswordHash()))throw new ApiException(HttpStatus.UNAUTHORIZED,"Correo o contraseña incorrectos.");return new LoginResponse(jwt.issue(u),u.getRole().name(),u.getEmail());}
+ @Transactional(readOnly=true) public List<DoctorResponse> doctors(){return doctors.findAll().stream().map(DoctorResponse::from).toList();}
+ @Transactional(readOnly=true) public List<PatientResponse> patients(){return patients.findAll().stream().map(PatientResponse::from).toList();}
+ @Transactional(readOnly=true) public List<PublicPatientResponse> publicPatients(){return IntStream.range(0,patients.findAll().size()).mapToObj(i->new PublicPatientResponse("Paciente registrado "+(i+1))).toList();}
+ @Transactional(readOnly=true) public Map<String,Boolean> patientExists(String id){return Map.of("exists",patients.existsByCedula(id.trim()));}
+ @Transactional public DoctorResponse createDoctor(DoctorRequest r){if(doctors.existsByCedula(r.cedula().trim()))throw new ApiException(HttpStatus.CONFLICT,"La cédula del médico ya está registrada.");return DoctorResponse.from(doctors.save(new Doctor(r.cedula().trim(),r.firstName().trim(),r.lastName().trim(),r.specialty().trim(),r.phone(),r.email().trim().toLowerCase())));}
+ @Transactional public PatientResponse createPatient(PatientRequest r){String id=r.cedula().trim();if(patients.existsByCedula(id))throw new ApiException(HttpStatus.CONFLICT,"La cédula del paciente ya está registrada.");if(users.existsByEmailIgnoreCase(r.email()))throw new ApiException(HttpStatus.CONFLICT,"El correo ya está registrado.");UserAccount u=users.save(new UserAccount(r.email(),encoder.encode(r.password()),Role.PATIENT));return PatientResponse.from(patients.save(new Patient(id,r.firstName().trim(),r.lastName().trim(),r.birthDate(),r.phone(),r.email(),r.address(),u)));}
+ @Transactional public AppointmentResponse createAppointment(AppointmentRequest r){Patient p=patients.findById(r.patientId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Paciente no encontrado."));Doctor d=doctors.findById(r.doctorId()).orElseThrow(()->new ApiException(HttpStatus.NOT_FOUND,"Médico no encontrado."));return AppointmentResponse.from(appointments.save(new Appointment(p,d,r.date(),r.time(),r.reason().trim(),r.status().trim())));}
+ @Transactional(readOnly=true) public List<AppointmentResponse> allAppointments(){return appointments.findAllByOrderByDateAscTimeAsc().stream().map(AppointmentResponse::from).toList();}
+ @Transactional(readOnly=true) public List<AppointmentResponse> myAppointments(String principal){Long userId=parseUserId(principal);if(patients.findByUserId(userId).isEmpty())throw new ApiException(HttpStatus.NOT_FOUND,"No hay un perfil de paciente asociado.");return appointments.findByPatientUserIdOrderByDateAscTimeAsc(userId).stream().map(AppointmentResponse::from).toList();}
+ private Long parseUserId(String p){try{return Long.valueOf(p);}catch(Exception e){throw new ApiException(HttpStatus.UNAUTHORIZED,"Token inválido.");}}
+}

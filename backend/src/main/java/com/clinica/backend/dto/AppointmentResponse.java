@@ -1,0 +1,3 @@
+package com.clinica.backend.dto;
+import com.clinica.backend.entity.Appointment; import java.time.*;
+public record AppointmentResponse(Long id,Long patientId,String patientName,Long doctorId,String doctorName,String specialty,LocalDate date,LocalTime time,String reason,String status){public static AppointmentResponse from(Appointment a){return new AppointmentResponse(a.getId(),a.getPatient().getId(),a.getPatient().getFirstName()+" "+a.getPatient().getLastName(),a.getDoctor().getId(),a.getDoctor().getFirstName()+" "+a.getDoctor().getLastName(),a.getDoctor().getSpecialty(),a.getDate(),a.getTime(),a.getReason(),a.getStatus());}}
